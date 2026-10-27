@@ -2,6 +2,83 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- ===== TEACHER LOGIN (Outseta) — keep this whole block at the top of <head> when updating the hub ===== -->
+<style id="hub-gate-style">
+  /* Hub content stays hidden until a teacher with the right plan is logged in */
+  html:not(.hub-unlocked) body > *:not(#hub-gate){display:none!important}
+  html.hub-unlocked #hub-gate{display:none!important}
+  #hub-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px;background:#fff;color:#22315B;font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif}
+  #hub-gate .hg-card{width:100%;max-width:440px;text-align:center}
+  #hub-gate h1{font-size:28px;line-height:1.2;margin:0 0 8px;font-weight:800;color:#22315B}
+  #hub-gate p{font-size:16px;line-height:1.5;margin:0 0 20px;color:#5b5f66}
+  #hub-gate .hg-bar{height:6px;width:72px;border-radius:3px;background:#4EA7DD;margin:0 auto 20px}
+  #hub-gate a{color:#22315B;font-weight:600}
+  #hub-gate button{font:inherit;font-weight:600;padding:10px 18px;border-radius:8px;border:1px solid #22315B;background:#22315B;color:#fff;cursor:pointer}
+  #hub-gate [hidden]{display:none!important}
+  #hub-logout{position:fixed;left:12px;bottom:12px;z-index:50;font:600 12px/1 "Inter",system-ui,sans-serif;padding:8px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.15);background:#fff;color:#333;cursor:pointer;opacity:.75}
+  #hub-logout:hover{opacity:1}
+</style>
+<noscript><style>#hub-gate .hg-js{display:none}</style></noscript>
+<script>
+  var o_options = {
+    domain: "risehi.outseta.com",
+    load: "auth,nocode",
+    monitorDom: true,
+    auth: { authenticationCallbackUrl: window.location.origin + window.location.pathname }
+  };
+</script>
+<script src="https://cdn.outseta.com/outseta.min.js" data-options="o_options"></script>
+<script>
+(function () {
+  // Plans allowed into THIS hub (Outseta plan IDs)
+  var ALLOWED_PLANS = ["yW15MgWB", "VmAdnvWa"];
+  var decided = false;
+
+  function show(id) {
+    ["hg-loading", "hg-login", "hg-denied", "hg-error"].forEach(function (s) {
+      var el = document.getElementById(s); if (el) el.hidden = (s !== id);
+    });
+  }
+  function readPlan(token) {
+    try {
+      var p = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      while (p.length % 4) p += "=";
+      return JSON.parse(atob(p))["outseta:planUid"] || null;
+    } catch (e) { return null; }
+  }
+  function unlock() {
+    document.documentElement.classList.add("hub-unlocked");
+    if (!document.getElementById("hub-logout")) {
+      var b = document.createElement("button");
+      b.id = "hub-logout"; b.type = "button"; b.textContent = "Log out";
+      b.onclick = function () { window.Outseta && Outseta.logout(); };
+      document.body.appendChild(b);
+    }
+  }
+  function evaluate(final) {
+    if (decided && !final) return;
+    var token = window.Outseta && Outseta.getAccessToken && Outseta.getAccessToken();
+    if (token) {
+      decided = true;
+      if (ALLOWED_PLANS.indexOf(readPlan(token)) !== -1) unlock(); else show("hg-denied");
+    } else if (final) {
+      show(window.Outseta ? "hg-login" : "hg-error");
+    }
+  }
+  window.hubGateLogout = function () { window.Outseta && Outseta.logout(); };
+
+  if (window.Outseta && Outseta.on) {
+    Outseta.on("accessToken.set", function () { evaluate(false); });
+    Outseta.on("nocode.initialized", function () { evaluate(true); });
+    Outseta.on("logout", function () { window.location.reload(); });
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    evaluate(false);
+    setTimeout(function () { if (!decided) evaluate(true); }, 2500);
+  });
+})();
+</script>
+<!-- ===== END TEACHER LOGIN ===== -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Make IT Happen Teacher Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -569,6 +646,31 @@ footer a{color:var(--fg);font-weight:700}
 </style>
 </head>
 <body>
+<!-- ===== TEACHER LOGIN SCREEN (Outseta) — keep this block right after <body> ===== -->
+<div id="hub-gate">
+  <div class="hg-card">
+    <div class="hg-bar"></div>
+    <h1>Make IT Happen Teacher Hub</h1>
+    <noscript><p>This hub needs JavaScript turned on so you can log in.</p></noscript>
+    <div class="hg-js">
+      <div id="hg-loading"><p>Checking your login…</p></div>
+      <div id="hg-login" hidden>
+        <p>This hub is for teachers. Log in with your teacher account to continue.</p>
+        <div data-o-auth="1" data-widget-mode="login" data-mode="embed"></div>
+        <p style="margin-top:20px;font-size:14px">Need an account or forgot which email you use? Email <a href="mailto:ryenne@risehi.com">ryenne@risehi.com</a>.</p>
+      </div>
+      <div id="hg-denied" hidden>
+        <p>Your account doesn't have access to this hub. If you think that's a mistake, email <a href="mailto:ryenne@risehi.com">ryenne@risehi.com</a>.</p>
+        <button type="button" onclick="hubGateLogout()">Log out</button>
+      </div>
+      <div id="hg-error" hidden>
+        <p>We couldn't load the login. Try refreshing the page, or email <a href="mailto:ryenne@risehi.com">ryenne@risehi.com</a> for help.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===== END TEACHER LOGIN SCREEN ===== -->
+
 
 
 <header class="bar">
